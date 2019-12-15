@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css?family=Gupter&display=swap');
+
+.App {
+  text-align: center;
+  background-image: url("./FridayBackgorund.png");
+  background-size: cover;
+  min-height: 120vh;
+  height: 100%;
+  display: flow-root;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+
+.App-titleheader{
+  text-align: center;
+  align-items: center;
+}
+
+.App-title{
+  text-decoration-color: white;
+  font-display: block;
+  color: white;
+}
+
+.App-desc{
+  font-family: 'Gupter', serif;
+  text-emphasis-color: white;
+  color: white;
+}
+
+.App-background {
+  background-color: #282c34;
+  min-height: 120vh;
+  height: 100%;
+  display: flow-root;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+}
+
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+#ip2 {
+  border-radius: 25px;
+  border: 2px solid #609;
+  padding: 15px; 
+  width: 600px;
+  height: 5px;    
+  text-align: center;
+}
+
+.App-header1-start {
+  background-color: #282c34;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  margin-left: 2%;
+  margin-right: 3;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-header1 {
+  background-color: #282c34;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  margin-left: -3%;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
