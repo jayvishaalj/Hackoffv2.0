@@ -1,13 +1,12 @@
 import React, { Component } from 'react';
 import './App.css';
 import logo from './FRIDAY.jpg';
-import { Container, Row, Col, Button } from "react-bootstrap";
+import { Container, Row, Col, Navbar } from "react-bootstrap";
 import Editor from "@monaco-editor/react";
 import Iframe from 'react-iframe';
 //import Speech from 'react-speech';
 import Artyom from 'artyom.js';
 import axois from 'axios';
-import Particles from 'react-particles-js';
 //import SpeechToText from 'speech-to-text';
 //import SpeechRecognition from 'react-speech-recognition';
 
@@ -21,18 +20,19 @@ class App extends Component {
     super(props);
     this.valueGetter = React.createRef();
     this.state = {
-      codeValue: "",
+      codeValue: "#write your code here \n",
       importCommands: "import matplotlib.pyplot as plt \n from mpl_toolkits.mplot3d import Axes3D \n from sklearn import datasets\n from sklearn.decomposition import PCA",
-      importStatement: "// write your code here \n",
+      importStatement: "",
       load: "",
       preProcessing: "",
       model: "",
       result: "",
-      recognizedText: "speak Something !! Start it with Wake word Friday !!!",
+      recognizedText: "Speak something! Start it with Wake word Friday !!!",
       imported: false,
       listening: true,
       guideUrl: "https://scikit-learn.org/stable/user_guide.html",
-      guideNeeded:false
+      guideNeeded: false,
+      runOutput: ""
 
     }
   }
@@ -47,7 +47,7 @@ class App extends Component {
     friday.redirectRecognizedTextOutput((recognized, isFinal) => {
       if (isFinal) {
         console.log("Sending text" + recognized)
-        let apiUrl = 'http://c726f332.ngrok.io/api/getText/' + recognized
+        let apiUrl = 'http://5c972537.ngrok.io/api/getText/' + recognized
         axois.get(apiUrl)
           .then(response => {
             console.log(response.data);
@@ -62,36 +62,56 @@ class App extends Component {
               this.setState({
                 importStatement: this.state.importStatement + imports,
                 guideUrl: urls,
-                guideNeeded:true
+                guideNeeded: true
               });
-              let apiUrl = 'http://c726f332.ngrok.io/api/interpreter/' + imports;
+              let apiUrl = 'http://5c972537.ngrok.io/api/interpreter/' + imports;
               axois.get(apiUrl)
                 .then(response => {
-                  console.log(response.data);
-                  if (response.status === 200) {
-                    console.log("STATUS OK INTERPRETER");
-                    console.log(response.data);
+                  console.log(response.data.value);
+                  console.log("STATUS OK INTERPRETER");
+                  console.log(response.data.value);
+                  let res = response.data.result;
+                  let link = response.data.value;
+                  console.log(link);
+                  if (res.localeCompare("error")) {
+                    this.setState({
+                      seenError: true,
+                      runOutput: link
+                    })
                   }
                 })
                 .catch(err => {
                   console.log(err);
                 })
+
               if (phase.localeCompare("model") === 0) {
                 this.setState({
                   model: this.state.model + codesnip
                 });
               }
-              else if (phase.localeCompare("preprocess") === 0) {
+              else if (phase.localeCompare("process") === 0) {
                 this.setState({
                   preProcessing: this.state.preProcessing + codesnip
                 });
+                let apiUrl = 'http://5c972537.ngrok.io/api/interpreter/' + codesnip;
+                axois.get(apiUrl)
+                  .then(response => {
+                    console.log(response.data);
+                    if (response.status === 200) {
+                      console.log("STATUS OK INTERPRETER");
+                      console.log(response.data);
+                    }
+                  })
+                  .catch(err => {
+                    console.log(err);
+                  })
 
               }
               else if (phase.localeCompare("load") === 0) {
                 this.setState({
                   load: this.state.load + codesnip
                 });
-                let apiUrl = 'http://c726f332.ngrok.io/api/interpreter/' + codesnip;
+                let apiUrl = 'http://5c972537.ngrok.io/api/interpreter/' + codesnip;
                 axois.get(apiUrl)
                   .then(response => {
                     console.log(response.data);
@@ -139,7 +159,7 @@ class App extends Component {
           friday.say("Good afternoon, how are you?");
           break;
         default:
-          friday.say("Hi , Sir");
+          friday.say("Hi , i am your coding assistant");
       }
     });
 
@@ -170,6 +190,37 @@ class App extends Component {
           else {
             friday.say("already Imported Sir !!")
           }
+        }
+      },
+      {
+        indexes: ['run code', 'Run code'],
+        action: (i, wildcard) => {
+          friday.say("Executing the code in server");
+          let apiUrl = 'http://5c972537.ngrok.io/api/runCode';
+          axois.post(apiUrl, {
+            "code": this.valueGetter.current()
+          })
+            .then(response => {
+              console.log(response.data);
+              if (response.status === 200) {
+                console.log("STATUS OK");
+                console.log(response.data.value);
+                let link = response.data.value;
+                console.log(link);
+                this.setState({
+                  runOutput: response.data.value
+                });
+                console.log(" OUTPUT : "+this.state.runOutput);
+
+
+
+                friday.say("Your output is ready , scroll down to view it ");
+                friday.say("Result is " + this.state.runOutput);
+              }
+            })
+            .catch(err => {
+              console.log(err);
+            })
         }
       },
       {
@@ -254,7 +305,7 @@ class App extends Component {
     }).catch((err) => {
       console.error("friday couldn't be initialized: ", err);
     });
-    friday.say("Hi Sir");
+    friday.say("Hi, I am your Coding Assistant");
   }
 
   handleEditorDidMount = (_valueGetter) => {
@@ -267,89 +318,111 @@ class App extends Component {
 
 
   handleShowValue = () => {
-    alert(this.valueGetter.current());
     console.log(this.valueGetter.current());
   }
 
   render() {
-    // if (!this.state.guideNeeded) {
-    //   return (
-    //     <div className="App">
-    //       <div className="App-titleheader">
+    if (!this.state.guideNeeded) {
+      return (
+        <div className="App">
+          <div className="App-titleheader">
 
-    //         <h1 className="App-title">F.R.I.D.A.Y.</h1>
-    //         <h5 className="App-desc">An NLP based DataScience coding helping tool specially for dyslexia people</h5>
-    //       </div>
-    //       <br />
-    //       <input type="text" id="ip2" value={this.state.recognizedText} />
-    //       <br />
-    //       <br />
-    //       <header className="App-header1-start">
-    //         <Editor
-    //           height="70vh"
-    //           language="python"
-    //           theme="vs-dark"
-    //                 options ={{
-    //                   acceptSuggestionOnCommitCharacter: true,
-    //                   acceptSuggestionOnEnter: "on",
-    //                   accessibilitySupport: "auto",
-    //                   autoIndent: false,
-    //                   automaticLayout: true,
-    //                   codeLens: true,
-    //                   colorDecorators: true,
-    //                   contextmenu: true,
-    //                   cursorBlinking: "blink",
-    //                   cursorSmoothCaretAnimation: false,
-    //                   cursorStyle: "line",
-    //                   disableLayerHinting: false,
-    //                   disableMonospaceOptimizations: false,
-    //                   dragAndDrop: false,
-    //                   fixedOverflowWidgets: false,
-    //                   folding: true,
-    //                   foldingStrategy: "auto",
-    //                   fontLigatures: false,
-    //                   formatOnPaste: false,
-    //                   formatOnType: false,
-    //                   hideCursorInOverviewRuler: false,
-    //                   highlightActiveIndentGuide: true,
-    //                   links: true,
-    //                   quickSuggestions: true,
-    //                   quickSuggestionsDelay: 100,
-    //                   readOnly: false,
-    //                   renderControlCharacters: false,
-    //                   renderFinalNewline: true,
-    //                   renderIndentGuides: true,
-    //                   renderLineHighlight: "all",
-    //                   renderWhitespace: "none",
-    //                   revealHorizontalRightPadding: 30,
-    //                   roundedSelection: true,
-    //                   rulers: [],
-    //                   scrollBeyondLastColumn: 5,
-    //                   scrollBeyondLastLine: true,
-    //                   selectOnLineNumbers: true,
-    //                   selectionClipboard: true,
-    //                   selectionHighlight: true,
-    //                   showFoldingControls: "mouseover",
-    //                   smoothScrolling: false,
-    //                   suggestOnTriggerCharacters: true,
-    //                   wordBasedSuggestions: false,
-    //                   wordSeparators: "~!@#$%^&*()-=+[{]}|;:'\",.<>/?",
-    //                   wordWrap: "off",
-    //                   wordWrapBreakAfterCharacters: "\t})]?|&,;",
-    //                   wordWrapBreakBeforeCharacters: "{([+",
-    //                   wordWrapBreakObtrusiveCharacters: ".",
-    //                   wordWrapColumn: 80,
-    //                   wordWrapMinified: true,
-    //                   wrappingIndent: "none"
-    //                 }}
-    //           value={this.state.codeValue}
-    //           //editorDidMount={this.handleEditorDidMount.bind(this)}
-    //         />
-    //       </header>
-    //     </div>
-    //   );
-    // }
-    // else {
+            <Navbar bg="dark" variant="dark">
+              <Navbar.Brand href="#home">
+                <Container>
+                  <Row>
+                    <Col>
+                      <img
+                        alt=""
+                        src={logo}
+                        width="100"
+                        height="100"
+                        className="d-inline-block align-top"
+                      />{''}
+                    </Col>
+                    <Col>
+                      <Row>
+                        <h1>F.R.I.D.A.Y.</h1><h5>(Female Replacement Intelligent Digital Assistant Youth)</h5>
+                      </Row>
+                      <Row>
+                        An NLP Based DataScience Coding Assistant for the Dyslexic
+              </Row>
+                    </Col>
+                  </Row>
+                </Container>
+              </Navbar.Brand>
+            </Navbar>
+          </div>
+          <br />
+          <input type="text" id="ip2" value={this.state.recognizedText} />
+          <br />
+          <br />
+          <header className="App-header1-start">
+            <Editor
+              height="70vh"
+              language="python"
+              theme="vs-dark"
+              options={{
+                acceptSuggestionOnCommitCharacter: true,
+                acceptSuggestionOnEnter: "on",
+                accessibilitySupport: "auto",
+                autoIndent: false,
+                automaticLayout: true,
+                codeLens: true,
+                colorDecorators: true,
+                contextmenu: true,
+                cursorBlinking: "blink",
+                cursorSmoothCaretAnimation: false,
+                cursorStyle: "line",
+                disableLayerHinting: false,
+                disableMonospaceOptimizations: false,
+                dragAndDrop: false,
+                fixedOverflowWidgets: false,
+                folding: true,
+                foldingStrategy: "auto",
+                fontLigatures: false,
+                formatOnPaste: false,
+                formatOnType: false,
+                hideCursorInOverviewRuler: false,
+                highlightActiveIndentGuide: true,
+                links: true,
+                quickSuggestions: true,
+                quickSuggestionsDelay: 100,
+                readOnly: false,
+                renderControlCharacters: false,
+                renderFinalNewline: true,
+                renderIndentGuides: true,
+                renderLineHighlight: "all",
+                renderWhitespace: "none",
+                revealHorizontalRightPadding: 30,
+                roundedSelection: true,
+                rulers: [],
+                scrollBeyondLastColumn: 5,
+                scrollBeyondLastLine: true,
+                selectOnLineNumbers: true,
+                selectionClipboard: true,
+                selectionHighlight: true,
+                showFoldingControls: "mouseover",
+                smoothScrolling: false,
+                suggestOnTriggerCharacters: true,
+                wordBasedSuggestions: false,
+                wordSeparators: "~!@#$%^&*()-=+[{]}|;:'\",.<>/?",
+                wordWrap: "off",
+                wordWrapBreakAfterCharacters: "\t})]?|&,;",
+                wordWrapBreakBeforeCharacters: "{([+",
+                wordWrapBreakObtrusiveCharacters: ".",
+                wordWrapColumn: 80,
+                wordWrapMinified: true,
+                wrappingIndent: "none"
+              }}
+              value={this.state.codeValue}
+            //editorDidMount={this.handleEditorDidMount.bind(this)}
+            />
+          </header>
+        </div>
+      );
+    }
+    else {
       return (
         <div className="App">
           {/* <Col>
@@ -361,24 +434,47 @@ class App extends Component {
                       className="d-inline-block align-top"
                     />{''}
                   </Col> */}
-          <div className="App-titleheader">
-
-            <h1 className="neon-text neon-wrapper App-title" >F.R.I.D.A.Y.</h1>
-            <h5 className="App-desc">An NLP based DataScience coding helping tool specially for dyslexia people</h5>
-          </div>
+          <Navbar bg="dark" variant="dark">
+            <Navbar.Brand href="#home">
+              <Container>
+                <Row>
+                  <Col>
+                    <img
+                      alt=""
+                      src={logo}
+                      width="100"
+                      height="100"
+                      className="d-inline-block align-top"
+                    />{''}
+                  </Col>
+                  <Col>
+                    <Row>
+                      <h1>F.R.I.D.A.Y.</h1>
+                    </Row>
+                    <Row>
+                      Female Replacement Intelligent Digital Assistant Youth
+              </Row>
+                    <Row>
+                      An NLP Based DataScience Coding Assistant for the Dyslexic
+              </Row>
+                  </Col>
+                </Row>
+              </Container>
+            </Navbar.Brand>
+          </Navbar>
           <br />
           <input type="text" id="ip2" value={this.state.recognizedText} />
           <br />
           <br />
           <Container>
             <Row>
-              <Col sm={7}>
+              <Col sm={6}>
                 <header className="App-header1">
                   <Editor
-                    height="70vh"
+                    height="85vh"
                     language="python"
                     theme="vs-dark"
-                    options ={{
+                    options={{
                       acceptSuggestionOnCommitCharacter: true,
                       acceptSuggestionOnEnter: "on",
                       accessibilitySupport: "auto",
@@ -431,27 +527,31 @@ class App extends Component {
                       wordWrapMinified: true,
                       wrappingIndent: "none"
                     }}
-                                        
+
                     value={this.state.codeValue}
-                    //editorDidMount={this.handleEditorDidMount.bind(this)}
+                    editorDidMount={this.handleEditorDidMount.bind(this)}
                   />
                 </header>
               </Col>
-              <Col sm={5}>
+              <Col sm={6}>
                 <Iframe url={this.state.guideUrl}
-                  width="500px"
-                  height="450px"
+                  width="650px"
+                  height="550px"
                   id="myId"
-                  scrolling="yes" />
+                  scrolling="yes"
+                  className="App-guide" />
 
               </Col>
+            </Row>
+            <Row>
+              <h3 className="App-outputText">OUTPUT : {this.state.runOutput} </h3>
             </Row>
           </Container>
         </div>
       );
     }
 
-  // }
+  }
 
 }
 
